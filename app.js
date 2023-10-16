@@ -10,6 +10,10 @@ const fsx = require('fs-extra')
 
 const app = express();
 app.use(express.json());
+app.use('/general/banner', express.static('general/banner'));
+app.use('/general/team', express.static('general/team'));
+
+
 // Configura el middleware de Multer para gestionar las subidas de archivos
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -72,8 +76,9 @@ const upload = multer({ storage: storage });
 // Ruta para descargar un archivo PDF por su nombre
 app.get('/download/:nombreArchivo', (req, res) => {
     const nombreArchivo = req.params.nombreArchivo;
-    const rutaArchivo = `uploads/${nombreArchivo}`;
-  
+    const rutaArchivo = nombreArchivo.replace(/-/g,'/')
+    console.log(rutaArchivo)
+    
     // Verifica si el archivo existe
     if (fs.existsSync(rutaArchivo)) {
       // Configura las cabeceras de la respuesta para la descarga
@@ -109,9 +114,13 @@ app.get('/download/:nombreArchivo', (req, res) => {
 
   // GET CONTENIDOS
   app.post('/content', (req, res) => {
-    const category_id = req.body.category_id ?? null
-    const query = 'CALL content_list(?)';
-    db.query(query, [category_id], (err, result) => {
+    console.log(req.body)
+    const category_alias = req.body.category_alias ?? null
+    const page = req.body.page ?? null
+    const size_rows = req.body.size_rows ?? null
+    const query = 'CALL content_list(?,?,?)';
+    
+    db.query(query, [category_alias,page,size_rows], (err, result) => {
       if (err) {
         res.status(500).send('Error al obtener datos de la base de datos');
       } else {
@@ -119,13 +128,12 @@ app.get('/download/:nombreArchivo', (req, res) => {
           res.status(404).send('Registro no encontrado');
         } else {
           const results = result[0].map(objeto =>{
+            objeto.content_description = objeto.content_description.split(' ').splice(0,40).join(' ')
             if(objeto.has_img){
               objeto.route_img = `multimedia-${objeto.route_img}`
             }else{
                objeto.route_img = null
             }
-            
-
             return ({...objeto})
           })
 
@@ -134,6 +142,7 @@ app.get('/download/:nombreArchivo', (req, res) => {
       }
     });
   });
+  
 
 
   // GET UN SOLO CONTENIDO
@@ -148,18 +157,16 @@ app.get('/download/:nombreArchivo', (req, res) => {
         if (result.length === 0) {
           res.status(404).send('Registro no encontrado');
         } else {
-          const pathImage = path.resolve( __dirname, 
-            `uploads/${result[0][0].img_route+
-              result[0][0].category_name+
-              's/'+
-              result[0][0].img_name+
-              result[0][0].img_extend}`);
+          console.log(result[0][0])
+          const results = result[0][0]
+          if(result[0][0].route_img)results.route_img = `multimedia-${results.route_img}`
+          if(result[0][0].route_pdf)results.route_pdf = `multimedia-${results.route_pdf}`
 
-          res.status(200).json({
-            img: pathImage,
-            contents: result[0][0],
-            authors: result[1]
-          });
+
+          res.status(200).json([
+            results,
+            result[1]
+          ]);
         }
       }
     });
@@ -170,11 +177,46 @@ app.get('/download/:nombreArchivo', (req, res) => {
     const route = req.params.route;
     
     const newRoute = route.replace(/-/g,'/')
+    const pathImage = path.resolve( __dirname, newRoute);
+
+    if (fs.existsSync(pathImage)) {
+      // El archivo existe, enviarlo
+      res.sendFile(pathImage);
+    } else {
+      // El archivo no existe, enviar una imagen por defecto o una respuesta de error
+      res.sendFile(path.resolve(__dirname, 'defectoImg.png'));
+    }
+
+    
+  });
+
+
+
+
+  // const folderPath = './general/team'; // Reemplaza esto con la ruta de la carpeta que deseas explorar
+
+
+  app.get('/banner', (req, res) => {
+
+    const newRoute = route.replace(/-/g,'/')
     console.log(newRoute)
     const pathImage = path.resolve( __dirname, newRoute);
 
     res.sendFile(pathImage)
   });
+
+
+
+
+  // fs.readdir(folderPath, (err, files) => {
+  //   if (err) {
+  //     console.error('Error al leer la carpeta:', err);
+  //     return;
+  //   }
+
+  //   // 'files' es un arreglo que contiene los nombres de los archivos en la carpeta
+  //   console.log('Nombres de archivos en la carpeta:', files);
+  // });
   
 
 
