@@ -124,21 +124,26 @@ app.get('/download/:nombreArchivo', (req, res) => {
       if (err) {
         res.status(500).send('Error al obtener datos de la base de datos');
       } else {
-        if (result.length === 0) {
-          res.status(404).send('Registro no encontrado');
-        } else {
-          const results = result[0].map(objeto =>{
-            objeto.content_description = objeto.content_description.split(' ').splice(0,40).join(' ')
-            if(objeto.has_img){
-              objeto.route_img = `multimedia-${objeto.route_img}`
-            }else{
-               objeto.route_img = null
-            }
-            return ({...objeto})
-          })
-
-          res.status(200).json(results);
+        try{
+          if (result.length === 0) {
+            res.status(404).send('Registro no encontrado');
+          } else {
+            const results = result[0].map(objeto =>{
+              objeto.content_description = objeto.content_description.split(' ').splice(0,40).join(' ')
+              if(objeto.has_img){
+                objeto.route_img = `multimedia-${objeto.route_img}`
+              }else{
+                 objeto.route_img = null
+              }
+              return ({...objeto})
+            })
+  
+            res.status(200).json(results);
+          }
+        }catch(error){
+          res.status(502).send('Hubo un problema al acceder a esa acción: error');
         }
+        
       }
     });
   });
@@ -157,16 +162,21 @@ app.get('/download/:nombreArchivo', (req, res) => {
         if (result.length === 0) {
           res.status(404).send('Registro no encontrado');
         } else {
-          console.log(result[0][0])
-          const results = result[0][0]
-          if(result[0][0].route_img)results.route_img = `multimedia-${results.route_img}`
-          if(result[0][0].route_pdf)results.route_pdf = `multimedia-${results.route_pdf}`
-
-
-          res.status(200).json([
-            results,
-            result[1]
-          ]);
+          try {
+            console.log(result[0][0])
+            const results = result[0][0]
+            if(result[0][0].route_img)results.route_img = `multimedia-${results.route_img}`
+            if(result[0][0].route_pdf)results.route_pdf = `multimedia-${results.route_pdf}`
+  
+  
+            res.status(200).json([
+              results,
+              result[1]
+            ]);
+          } catch (error) {
+            
+          }
+         
         }
       }
     });
