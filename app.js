@@ -28,10 +28,10 @@ const storage = multer.diskStorage({
 app.use(cors()); 
 
 const db = mysql.createConnection({
-  host: '127.0.0.1',
-  user: 'root',
-  port: 3306,
-  database: 'devPro'
+  host: 'localhost',
+  user: 'cpses_inp18otk5g',
+  password: 'Macazana23@',
+  database: 'investig_devpro'
 })
 
 db.connect((err) => {
